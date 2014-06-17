@@ -66,11 +66,33 @@ public partial class SiteMaster : MasterPage
 
     protected void Page_Load(object sender, EventArgs e)
     {
-
+        if(HttpContext.Current.Session["user"] != null)
+        {
+            userLabel.Text = "Logged in as " + HttpContext.Current.Session["user"];
+            btnLogin.Text = "Log out";
+        }
     }
 
     protected void Unnamed_LoggingOut(object sender, LoginCancelEventArgs e)
     {
         Context.GetOwinContext().Authentication.SignOut();
+    }
+
+    protected void btnLogin_Click(object sender, EventArgs e)
+    {
+        if (HttpContext.Current.Session["user"] == null)
+        {
+            Response.Redirect("LoginPage.aspx");
+        }
+        else
+        {
+            HttpContext.Current.Session["user"] = null;
+        }
+        Response.Redirect(Request.RawUrl);
+    }
+
+    protected void btnChangePass_Click(object sender, EventArgs e)
+    {
+
     }
 }

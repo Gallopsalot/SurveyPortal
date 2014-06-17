@@ -14,43 +14,41 @@ public partial class ASPX_CreateSurvey : System.Web.UI.Page
 
     protected void Page_Load(object sender, EventArgs e)
     {
-        string load = Request.QueryString["load"];
-
-        panelList = new List<HtmlGenericControl>();
-        btnList = new List<Button>();
-
-        if(load != null)
-        if (HttpContext.Current.Session["panelList"] != null)
+        if (HttpContext.Current.Session["user"] != null)
         {
-            if (HttpContext.Current.Session["btnList"] != null)
-            {
-                btnList = (List<Button>)HttpContext.Current.Session["btnList"];
+            panelList = new List<HtmlGenericControl>();
+            btnList = new List<Button>();
 
-                    foreach (Button btn in btnList)
+                if (HttpContext.Current.Session["panelList"] != null)
+                {
+                    if (HttpContext.Current.Session["btnList"] != null)
                     {
-                        btn.Click += new EventHandler(btnDelete_Click);
+                        btnList = (List<Button>)HttpContext.Current.Session["btnList"];
+
+                        foreach (Button btn in btnList)
+                        {
+                            btn.Click += new EventHandler(btnDelete_Click);
+                        }
                     }
-            }
 
-            panelList = (List<HtmlGenericControl>)HttpContext.Current.Session["panelList"];
+                    panelList = (List<HtmlGenericControl>)HttpContext.Current.Session["panelList"];
 
-            foreach (HtmlGenericControl div in panelList)
-            {
-                if(btnList != null)
-                div.Controls.Add(btnList[counter]);
+                    foreach (HtmlGenericControl div in panelList)
+                    {
+                        if (btnList != null)
+                            div.Controls.Add(btnList[counter]);
 
-                div.ID = "Section " + (counter + 1);
-                plcDiv.Controls.Add(div);
+                        div.ID = "Section " + (counter + 1);
+                        plcDiv.Controls.Add(div);
 
-                counter++;
-            }
+                        counter++;
+                    }
+                }
         }
-    }
-
-    protected void btnSect_Click(object sender, EventArgs e)
-    {
-        AddSection(propBox.Text);
-        SaveSession();
+        else
+        {
+            Response.Redirect("LoginPage.aspx");
+        }
     }
 
     void SaveSession()
@@ -60,9 +58,18 @@ public partial class ASPX_CreateSurvey : System.Web.UI.Page
         Response.Redirect(Request.RawUrl);
     }
 
-    void AddSection(string title)
+    void AddSection(string title, object o, object u)
     {
-        string section = "Section " + (counter + 1);
+        string section = "";
+        if (o is Button)
+        {
+            section += "but";
+        }
+        else
+        {
+            section += "rad";
+        }
+        section = title + (counter + 1);
 
         HtmlGenericControl divPanel = new HtmlGenericControl("DIV");
         divPanel.Attributes["class"] = "panel panel-default";
@@ -76,13 +83,16 @@ public partial class ASPX_CreateSurvey : System.Web.UI.Page
         Button btn = new Button();
         btn.Text = "Delete";
         btn.ID = counter.ToString();
-        /*btn.Attributes["OnCLick"] = "btnDelete_Click";
-        btn.Click += new EventHandler(btnDelete_Click);*/
 
         plcDiv.Controls.Add(divPanel);
         btnList.Add(btn);
         divPanel.Controls.Add(divBody);
         divBody.Controls.Add(divBody2);
+        divBody2.Controls.Add((Control)o);
+        if (u != null)
+        {
+            divBody2.Controls.Add((Control)u);
+        }
 
         propBox.Text = "";
 
@@ -93,12 +103,38 @@ public partial class ASPX_CreateSurvey : System.Web.UI.Page
 
     protected void btnRadio_Click(object sender, EventArgs e)
     {
+        addRadio(propBox.Text);
+    }
 
+    void addRadio(string text)
+    {
+        RadioButton rdb1 = new RadioButton();
+        rdb1.ID = text + "Yes" + counter;
+        rdb1.GroupName = text + counter;
+        rdb1.Text = "Yes";
+
+        RadioButton rdb2 = new RadioButton();
+        rdb2.ID = text + "No" + counter;
+        rdb2.GroupName = text + counter;
+        rdb2.Text = "No";
+
+        AddSection(text, rdb1, rdb2);
+        SaveSession();
     }
 
     protected void btnBox_Click(object sender, EventArgs e)
     {
+        addBox(propBox.Text);
+    }
 
+    void addBox(string text)
+    {
+        TextBox txtBox = new TextBox();
+        txtBox.Attributes["placeholder"] = "Enter answer here";
+        txtBox.ID = text + counter;
+
+        AddSection(text, txtBox, null);
+        SaveSession();
     }
 
     protected void btnDelete_Click(object sender, EventArgs e)
@@ -118,5 +154,18 @@ public partial class ASPX_CreateSurvey : System.Web.UI.Page
 
         panelList.RemoveAt(id);
         SaveSession();
+    }
+
+    protected void btnSave_Click(object sender, EventArgs e)
+    {
+        string metadata = "";
+
+        foreach(HtmlGenericControl div in panelList)
+        {
+            metadata += div.ID + ";";
+        }
+        
+        SQLHandler sql = new SQLHandler();
+        sql.SaveSurvey(nameBox.Text, Convert.ToInt32(HttpContext.Current.Session["id"].ToString()), metadata, null);
     }
 }
